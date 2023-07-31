@@ -60,7 +60,7 @@ Once you have set up and validated your environment, you can now access data sto
 my_prefix = 'bao/'
 # my_prefix = 'pet/'
 
-my_items <- s3_list_bucket_items(bucket = Sys.getenv("AWS_S3_BUCKET"), prefix = my_prefix)
+my_items <- pdaprules::s3_list_bucket_items(bucket = Sys.getenv("AWS_S3_BUCKET"), prefix = my_prefix)
 print(my_items)
 ```
 

@@ -11,14 +11,14 @@ s3_connect <- function() {
              AWS_DEFAULT_REGION = Sys.getenv("REGION"),
              AWS_REGION = Sys.getenv("REGION"))
   
-  svc <- secretsmanager()
+  svc <- paws::secretsmanager()
   
   #Put the name of the secret which contains the aws key info
   see <- svc$get_secret_value(
     SecretId = Sys.getenv("SECRET_NAME")
   )
   
-  see <- fromJSON(see$SecretString)
+  see <- jsonlite::fromJSON(see$SecretString)
   
   #Fill in the strings
   Sys.setenv(AWS_ACCESS_KEY_ID = see$aws_access_key,

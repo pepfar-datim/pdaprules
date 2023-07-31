@@ -1,5 +1,5 @@
 #' @export
-#' @title sendEventToS3(d, event_type, user_input)
+#' @title send_event_to_s3(d, event_type, user_input)
 #'
 #' @param d a list object that represents app information, timestamps etc
 #' @param event_type a type of even such as LOGIN, LOGOUT OR READ_S3
@@ -7,7 +7,7 @@
 #' @description Standard function for connecting to S3.
 #'
 #'
-sendEventToS3 <- function(d=NULL, event_type, user_input=NULL) {
+send_event_to_s3 <- function(d=NULL, event_type, user_input=NULL) {
 
   if (is.null(d)) {
     stop("you have not provided logging information")
