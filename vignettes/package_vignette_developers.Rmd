@@ -1,0 +1,93 @@
+---
+title: "Using pdarules for Developers"
+author: "Vignette Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Setting up your Environment
+
+In order to make sure you are setup to use rstudio properly, we recommend using a project directory. You can go to File > New Project > and either clone a directory or start a new project. If you choose a new directory you should see an option to check a box `use renv`. This will ensure that the `renv` package is installed and set up.
+
+If you choose a different route or are not sure if `renv` is installed simply run `install.packages('renv')`, then run `renv::activate()`. This will create a `renv.lock` file that keeps track of your packages and also an `.rprofile` which holds your environment variable. In your `.rprofile` you will need to set certain environment variables to access S3:
+
+```{r, echo = TRUE, eval = FALSE}
+Sys.setenv(
+  AWS_S3_BUCKET = "your.bucket.goes.here",
+  AWS_REGION = "us-east-1"
+)
+```
+
+`renv` is incredibly useful and will allow you to take snapshots of your installed packages making sure your work is sustainable and reproducible. Please review the documentation on renv if you need more help getting started: https://rstudio.github.io/renv/articles/renv.html#getting-started.
+
+Once these are set, save your `.rprofile` and restart your r session in session > Restart R. When R initiates certain environment variables will be available by default, specifically your aws credentials (added by our systems engineering team) and what you just added. In order to test this you will want to run the following lines of code once you've restarted your sessions and are logged in:
+
+```{r, echo = TRUE, eval = FALSE}
+Sys.getenv("AWS_SECRET_ACCESS_KEY")
+Sys.getenv("AWS_ACCESS_KEY_ID")
+Sys.getenv("AWS_REGION")
+Sys.getenv("AWS_S3_BUCKET")
+```
+
+Note these credentials are secret and should never be shared with anyone.
+
+## Connecting to S3 to Access Data
+
+Make sure the following libraries are installed and then declared for connecting to S3: 
+
+```{r, echo = TRUE, eval = TRUE}
+# unhash to install
+#install.packages("aws.s3")
+library(aws.s3)
+```
+
+
+Once you have set up and validated your environment, you can now access data stored in s3. Unless you are deploying a shiny application as part of our community apps program, there is no need to explicitly connect to S3. You should be able to run the following code below to access files (note depending on your access you will have to change the `my_prefix` variable to `pet` or `bao`):  
+
+```{r, echo = TRUE}
+
+my_prefix = 'bao/'
+# my_prefix = 'pet/'
+
+my_items <- pdaprules::s3_list_bucket_items(bucket = Sys.getenv("AWS_S3_BUCKET"), prefix = my_prefix)
+print(my_items)
+```
+
+## Reading, Writing, Deleting
+
+In this section we will demonstrate how to write a file to your shared workspace, read it back and then delete it:
+
+```{r, echo=TRUE, eval = FALSE}
+
+my_prefix = 'bao/'
+
+# write a test file
+s3write_using(mtcars, FUN = write.csv,
+             bucket = Sys.getenv("AWS_S3_BUCKET"),
+             object = paste0(my_prefix, "test.csv")
+)
+
+# read a file
+s3read_using(FUN = read.csv,
+             bucket = Sys.getenv("AWS_S3_BUCKET"),
+             object = paste0(my_prefix, "test.csv")
+)
+
+# delete a file 
+delete_object(
+  object = paste0(my_prefix, "test.csv"),
+  bucket = Sys.getenv("AWS_S3_BUCKET"),
+)
+
+```

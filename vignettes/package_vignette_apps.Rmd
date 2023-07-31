@@ -1,0 +1,94 @@
+---
+title: "Using pdarules for Community Apps"
+author: "Vignette Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+## Setting up your Environment
+
+In order to make sure you are setup to use rstudio properly, we recommend using a project directory. You can go to File > New Project > and either clone a directory (you most likely already have a project) or start a new project. If you choose a new directory you should see an option to check a box `use renv`. This will ensure that the `renv` package is installed and set up.
+
+If you choose a different route or are not sure if `renv` is installed simply run `install.packages('renv')`, then run `renv::activate()`. This will create a `renv.lock` file that keeps track of your packages and also an `.rprofile` which holds your environment variable. In your `.rprofile` you will need to set certain environment variables to access S3 from your application. You can use the function `create_rprofile` to create the template that you can copy and paste into your `.rpofile`:
+
+```{r, echo = TRUE, eval = FALSE}
+pdaprules::create_rprofile()
+```
+
+Once these are set, save your `.rprofile` and restart your r session in session > Restart R.
+
+## Connecting to S3
+
+Make sure the following libraries are installed and then declared for connecting to S3: 
+
+```{r, echo = TRUE, eval = TRUE}
+# unhash to install
+#install.packages("aws.s3")
+library(aws.s3)
+library(jsonlite)
+library(paws)
+```
+
+
+In order to ensure you can access S3 from workbench for your community app development we will test manual access. Run the code below in order to test S3 connectivity:
+
+```{r, echo=TRUE , eval = FALSE}
+pdaprules::s3_connect()
+my_items <- pdaprules::s3_list_bucket_items(bucket = Sys.getenv("READ_S3"))
+print(my_items)
+```
+
+You should be able to see items. If you receive an error, ensure that your credentials in your .rprofile are correct and that you have restarted your r session after setting them. When in doubt restart r.
+
+## Reading, Writing, Deleting
+
+In this section we will demonstrate how to write a file to your workspace; NOTE THAT IN ORDER TO RECEIVE A WORKSPACE YOU WILL HAVE TO DECLARE A NEED FOR A WORKSPACE IN ORDER FOR OUR SYSTEMS ENGINEERING TEAM TO CREATE A PREFIX FOR YOUR APPLICATION in our S3 workspace bucket:
+
+```{r, echo=TRUE, eval = FALSE}
+
+my_prefix = 'my_app_directory/'
+
+# write a test file
+s3write_using(mtcars, FUN = write.csv,
+             bucket = Sys.getenv("WRITE_S3"),
+             object = paste0(my_prefix, "test.csv")
+)
+
+# read a file
+s3read_using(FUN = read.csv,
+             bucket = Sys.getenv("WRITE_S3"),
+             object = paste0(my_prefix, "test.csv")
+)
+
+# delete a file 
+delete_object(
+  object = paste0(my_prefix, "test.csv"),
+  bucket = Sys.getenv("WRITE_S3"),
+)
+
+```
+
+
+## Example applications
+
+As part of the `pdaprules` package we provide example of shiny applications that account for different needs a developer might have. You can run the following code to see the different applications:
+
+```{r, echo = TRUE, eval = FALSE}
+
+pdaprules::run_example_app(example = 'basic-example')
+
+```
+
+A window should pop up demonstrating the example shiny app; you can reference the underlying code in the `inst/shiny-examples` directory of this package. Note we provide examples that demonstrate filtering data based on whether your audience includes USG and/or Partner organizations as well as implementation of oAuth requirements for app deployment.
