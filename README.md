@@ -4,7 +4,7 @@ The `pdaprules` package was created to help provide documentation on working wit
 
 To get started, install the pdaprules package using the following code snippet:
 
-`devtools::install_github(repo = "https://github.com/pepfar-datim/datimutils.git", ref = "master")`
+`devtools::install_github(repo = "https://github.com/pepfar-datim/pdaprules.git", ref = "master")`
 
 You can reference the following vignettes depending on your objectives:
 
