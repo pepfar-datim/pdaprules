@@ -217,8 +217,8 @@
       "RemoteRepo": "datimutils",
       "RemoteUsername": "pepfar-datim",
       "RemoteRef": "master",
-      "RemoteSha": "cd7e37ecfe47739ac6b67c27c5969e97d209366c",
-      "Hash": "0fc03b23a01ab0248a66542db766fe71",
+      "RemoteSha": "31c0be49b3e7d224394c54f1578a0d901b93d8e0",
+      "Hash": "ec413295a2039c7e6e6b7b34d88ec021",
       "Requirements": [
         "R6",
         "httr",
