@@ -6,13 +6,13 @@
 #'
 #'
 
-s3_list_bucket_items <- function(bucket) {
+s3_list_bucket_items <- function(bucket = NULL, prefix = NULL) {
 
   # params and structuring ----
   my_bucket <- bucket
 
   # Lists all of bucket contents, fill in your bucket
-  choices <- aws.s3::get_bucket(bucket = my_bucket)
+  choices <- aws.s3::get_bucket(bucket = my_bucket, prefix = prefix)
 
   # get just path names
   choices <- lapply(choices, "[[", 1)
