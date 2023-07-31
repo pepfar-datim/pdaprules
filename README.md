@@ -2,9 +2,12 @@
 
 The `pdaprules` package was created to help provide documentation on working with PRIME systems Posit Workbench and Posit Connect. We provide helpful functions for connecting to S3 as well as deploying and working with shiny applications in our connect environment. 
 
-To get started, install the pdaprules package using the following code snippet:
+To get started, install the pdaprules package using the following code snippet (make sure devtools is installed):
 
-`devtools::install_github(repo = "https://github.com/pepfar-datim/pdaprules.git", ref = "master")`
+```R
+install.packages('devtools')
+devtools::install_github(repo = "https://github.com/pepfar-datim/pdaprules.git", ref = "master")
+```
 
 You can reference the following vignettes depending on your objectives:
 
