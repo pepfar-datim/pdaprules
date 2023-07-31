@@ -6,7 +6,7 @@ To get started, install the pdaprules package using the following code snippet (
 
 ```R
 install.packages('devtools')
-devtools::install_github(repo = "https://github.com/pepfar-datim/pdaprules.git", ref = "master")
+devtools::install_github(repo = "https://github.com/pepfar-datim/pdaprules.git", ref = "main")
 ```
 
 You can reference the following vignettes depending on your objectives:
