@@ -24,7 +24,8 @@ If you choose a different route or are not sure if `renv` is installed simply ru
 
 ```{r, echo = TRUE, eval = FALSE}
 Sys.setenv(
-  AWS_S3_BUCKET = "your.bucket.goes.here",
+  S3_WRITE = "",
+  S3_READ = "",
   AWS_REGION = "us-east-1"
 )
 ```
@@ -34,39 +35,63 @@ Sys.setenv(
 Once these are set, save your `.rprofile` and restart your r session in session > Restart R. When R initiates certain environment variables will be available by default, specifically your aws credentials (added by our systems engineering team) and what you just added. In order to test this you will want to run the following lines of code once you've restarted your sessions and are logged in:
 
 ```{r, echo = TRUE, eval = FALSE}
-Sys.getenv("AWS_SECRET_ACCESS_KEY")
+Sys.getenv("S3_READ")
+Sys.getenv("S3_WRITE")
 Sys.getenv("AWS_ACCESS_KEY_ID")
-Sys.getenv("AWS_REGION")
-Sys.getenv("AWS_S3_BUCKET")
+Sys.getenv("AWS_ACCESS_KEY_ID")
+Sys.getenv("AWS_SECRET_ACCESS_KEY")
 ```
 
-Note these credentials are secret and should never be shared with anyone.
+Note these credentials ^ are secret and should never be shared with anyone.
 
-## Connecting to S3 to Access Data
+## Accessing Raw Data in S3
 
 Make sure the following libraries are installed and then declared for connecting to S3: 
 
 ```{r, echo = TRUE, eval = TRUE}
 # unhash to install
-#install.packages("aws.s3")
+# install.packages("aws.s3")
+# install.packages('devtools')
+# devtools::install_github(repo = "https://github.com/pepfar-datim/pdaprules.git", ref = "main")
 library(aws.s3)
+library(pdaprules)
+```
+
+Once you have set up and validated your environment, you can now access data stored the S3_READ bucket which holds raw data (msd, financial data sets, narratives). Use the following code to connect to S3_READ and test reading a file: 
+
+```{r, echo = TRUE, eval=TRUE}
+my_prefix = 'bao/'
+my_items <- s3_list_bucket_items(bucket = Sys.getenv("S3_READ"), prefix = my_prefix)
+
+# print out the first five items
+print(my_items[1:5,])
+
+# read a file
+my_df <- s3read_using(FUN = read.csv,
+             bucket = Sys.getenv("S3_READ"),
+             object = my_items[1,]$path_names
+)
+
+print(head(my_df))
 ```
 
 
-Once you have set up and validated your environment, you can now access data stored in s3. Unless you are deploying a shiny application as part of our community apps program, there is no need to explicitly connect to S3. You should be able to run the following code below to access files (note depending on your access you will have to change the `my_prefix` variable to `pet` or `bao`):  
+## Writing and Sharing Data with S3: Read, Write, Delete
+
+In the case that you wish to write your own dataset or share a report, every developer has write access to an S3 bucket known as S3_WRITE. Developers will have rights to a specific folder or "prefix" in this bucket where they can dump files.
+
+You should be able to run the following code below to write, read or delete files (note depending on your access you will have to change the `my_prefix` variable to `pet` or `bao`):  
 
 ```{r, echo = TRUE}
 
 my_prefix = 'bao/'
 # my_prefix = 'pet/'
 
-my_items <- s3_list_bucket_items(bucket = Sys.getenv("AWS_S3_BUCKET"), prefix = my_prefix)
+my_items <- s3_list_bucket_items(bucket = Sys.getenv("S3_WRITE"), prefix = my_prefix)
 print(my_items)
 ```
 
-## Reading, Writing, Deleting
-
-In this section we will demonstrate how to write a file to your shared workspace, read it back and then delete it:
+Now that you have listed the objects you can test, writing, reading and deleting:
 
 ```{r, echo=TRUE, eval = FALSE}
 
@@ -74,20 +99,20 @@ my_prefix = 'bao/'
 
 # write a test file
 s3write_using(mtcars, FUN = write.csv,
-             bucket = Sys.getenv("AWS_S3_BUCKET"),
+             bucket = Sys.getenv("S3_WRITE"),
              object = paste0(my_prefix, "test.csv")
 )
 
 # read a file
 s3read_using(FUN = read.csv,
-             bucket = Sys.getenv("AWS_S3_BUCKET"),
+             bucket = Sys.getenv("S3_WRITE"),
              object = paste0(my_prefix, "test.csv")
 )
 
-# delete a file 
+# delete the test file 
 delete_object(
-  object = paste0(my_prefix, "test.csv"),
-  bucket = Sys.getenv("AWS_S3_BUCKET"),
+  bucket = Sys.getenv("S3_WRITE"),
+  object = paste0(my_prefix, "S3_WRITE")
 )
 
 ```
