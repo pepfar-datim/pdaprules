@@ -4,11 +4,15 @@
 \alias{s3_list_bucket_items}
 \title{s3_list_bucket_items(bucket)}
 \usage{
-s3_list_bucket_items(bucket)
+s3_list_bucket_items(bucket, prefix = NULL, filter_results = TRUE)
 }
 \arguments{
 \item{bucket}{your aws bucket}
+
+\item{prefix}{a specific directory inside your bucket}
+
+\item{filter_results}{default is TRUE and filters for txt, xlsx ,csv and xlsx. If FALSE returns everything.}
 }
 \description{
-Standard function for connecting to S3.
+Standard function for connecting to S3, returns a dataframe of files.
 }

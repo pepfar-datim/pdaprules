@@ -101,7 +101,7 @@ server <- function(input, output, session) {
 
       # connect to S3
       tryCatch({
-        s3_connect()
+        pdaprules::s3_connect()
       },
       error = function(e) {
         print(e)
