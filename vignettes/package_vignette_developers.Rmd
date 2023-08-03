@@ -76,21 +76,11 @@ In the case that you wish to write your own dataset or share a report, every dev
 
 You should be able to run the following code below to write, read or delete files (note depending on your access you will have to change the `my_prefix` variable to `pet` or `bao`):  
 
-```{r, echo = TRUE}
-
-my_prefix = 'bao/'
-# my_prefix = 'pet/'
-
-my_items <- s3_list_bucket_items(bucket = Sys.getenv("S3_WRITE"), prefix = my_prefix)
-
-print(my_items)
-```
-
-Now that you have listed the objects you can test, writing, reading and deleting:
 
 ```{r, echo=TRUE, eval = FALSE}
 
 my_prefix = 'bao/'
+# my_prefix = 'pet/'
 
 # write a test file
 s3write_using(mtcars, FUN = write.csv,
