@@ -20,19 +20,9 @@ knitr::opts_chunk$set(
 
 In order to make sure you are setup to use rstudio properly, we recommend using a project directory. You can go to File > New Project > and either clone a directory or start a new project. If you choose a new directory you should see an option to check a box `use renv`. This will ensure that the `renv` package is installed and set up.
 
-If you choose a different route or are not sure if `renv` is installed simply run `install.packages('renv')`, then run `renv::activate()`. This will create a `renv.lock` file that keeps track of your packages and also an `.rprofile` which holds your environment variable. In your `.rprofile` you will need to set certain environment variables to access S3:
+If you choose a different route or are not sure if `renv` is installed simply run `install.packages('renv')`, then run `renv::activate()`. This will create a `renv.lock` file that keeps track of your packages and also an `.rprofile` which holds any environment variables. `renv` is incredibly useful and will allow you to take snapshots of your installed packages making sure your work is sustainable and reproducible. Please review the documentation on `renv` if you need more help getting started: https://rstudio.github.io/renv/articles/renv.html#getting-started.
 
-```{r, echo = TRUE, eval = FALSE}
-Sys.setenv(
-  S3_WRITE = "",
-  S3_READ = "",
-  AWS_REGION = "us-east-1"
-)
-```
-
-`renv` is incredibly useful and will allow you to take snapshots of your installed packages making sure your work is sustainable and reproducible. Please review the documentation on renv if you need more help getting started: https://rstudio.github.io/renv/articles/renv.html#getting-started.
-
-Once these are set, save your `.rprofile` and restart your r session in session > Restart R. When R initiates certain environment variables will be available by default, specifically your aws credentials (added by our systems engineering team) and what you just added. In order to test this you will want to run the following lines of code once you've restarted your sessions and are logged in:
+When R initiates certain environment variables will be available by default, specifically your aws credentials (added by our systems engineering team by default). In order to validate that you have access to your credential and bucket environment variables run the code block below:
 
 ```{r, echo = TRUE, eval = FALSE}
 Sys.getenv("S3_READ")
@@ -40,6 +30,7 @@ Sys.getenv("S3_WRITE")
 Sys.getenv("AWS_ACCESS_KEY_ID")
 Sys.getenv("AWS_ACCESS_KEY_ID")
 Sys.getenv("AWS_SECRET_ACCESS_KEY")
+Sys.getenv("AWS_REGION")
 ```
 
 Note these credentials ^ are secret and should never be shared with anyone.
@@ -49,30 +40,33 @@ Note these credentials ^ are secret and should never be shared with anyone.
 Make sure the following libraries are installed and then declared for connecting to S3: 
 
 ```{r, echo = TRUE, eval = TRUE}
-# unhash to install
+# install.packages("readr")
 # install.packages("aws.s3")
 # install.packages('devtools')
 # devtools::install_github(repo = "https://github.com/pepfar-datim/pdaprules.git", ref = "main")
 library(aws.s3)
 library(pdaprules)
+library(readr)
 ```
 
 Once you have set up and validated your environment, you can now access data stored the S3_READ bucket which holds raw data (msd, financial data sets, narratives). Use the following code to connect to S3_READ and test reading a file: 
 
 ```{r, echo = TRUE, eval=TRUE}
-my_prefix = 'bao/'
-my_items <- s3_list_bucket_items(bucket = Sys.getenv("S3_READ"), prefix = my_prefix)
+
+my_items <- s3_list_bucket_items(bucket = Sys.getenv("S3_READ"))
 
 # print out the first five items
 print(my_items[1:5,])
 
-# read a file
-my_df <- s3read_using(FUN = read.csv,
-             bucket = Sys.getenv("S3_READ"),
-             object = my_items[1,]$path_names
-)
+# read a file, in this case pipe delimited
+my_data <- my_items[64,]$path_names
+data <- aws.s3::s3read_using(FUN = readr::read_delim, "|", escape_double = FALSE,
+                               trim_ws = TRUE, col_types = readr::cols(.default = readr::col_character()
+                               ), 
+                               bucket = Sys.getenv("S3_READ"),
+                               object = my_data)
 
-print(head(my_df))
+print(head(data))
 ```
 
 
