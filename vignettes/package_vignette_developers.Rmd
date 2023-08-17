@@ -27,7 +27,7 @@ When R initiates certain environment variables will be available by default, spe
 ```{r, echo = TRUE, eval = FALSE}
 Sys.getenv("S3_READ")
 Sys.getenv("S3_WRITE")
-Sys.getenv("AWS_ACCESS_KEY_ID")
+Sys.getenv("AWS_ACCESS_KEY")
 Sys.getenv("AWS_ACCESS_KEY_ID")
 Sys.getenv("AWS_SECRET_ACCESS_KEY")
 Sys.getenv("AWS_REGION")
