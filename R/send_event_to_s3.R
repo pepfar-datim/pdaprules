@@ -2,7 +2,7 @@
 #' @title send_event_to_s3(app_name, event_type, user_input, log_bucket)
 #'
 #' @param app_name the name of the application you are logging
-#' @param event_type a type of event such as LOGIN, LOGOUT OR READ_S3
+#' @param event_type a type of event, choose from one of the following LOGIN, LOGOUT, S3_READ or S3_WRITE
 #' @param user_input information about a user for analysis
 #' @param log_bucket the s3 bucket for logging event data
 #' @description custom function for sending event information to S3.
@@ -23,6 +23,11 @@ send_event_to_s3 <- function(app_name=app_name, event_type=event_type, user_inpu
   # if user input is missing
   if (is.null(user_input) || is.null(event_type)) {
     stop("you have not provided sufficient logging information; make sure to provide both a type of event and user input!")
+  }
+  
+  # check event type
+  if(!event_type %in% c("LOGIN", "S3_READ", "S3_WRITE", "LOGOUT")) {
+    stop("the event type you are trying to record is not a valid choice!")
   }
   
   # establish params

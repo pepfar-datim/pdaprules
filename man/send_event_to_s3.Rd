@@ -2,17 +2,24 @@
 % Please edit documentation in R/send_event_to_s3.R
 \name{send_event_to_s3}
 \alias{send_event_to_s3}
-\title{send_event_to_s3(d, event_type, user_input)}
+\title{send_event_to_s3(app_name, event_type, user_input, log_bucket)}
 \usage{
-send_event_to_s3(d = NULL, event_type, user_input = NULL)
+send_event_to_s3(
+  app_name = app_name,
+  event_type = event_type,
+  user_input = user_input,
+  log_bucket = log_bucket
+)
 }
 \arguments{
-\item{d}{a list object that represents app information, timestamps etc}
+\item{app_name}{the name of the application you are logging}
 
-\item{event_type}{a type of even such as LOGIN, LOGOUT OR READ_S3}
+\item{event_type}{a type of event, choose from one of the following LOGIN, LOGOUT, S3_READ or S3_WRITE}
 
 \item{user_input}{information about a user for analysis}
+
+\item{log_bucket}{the s3 bucket for logging event data}
 }
 \description{
-Standard function for connecting to S3.
+custom function for sending event information to S3.
 }
