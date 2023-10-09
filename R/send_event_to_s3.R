@@ -72,7 +72,6 @@ send_event_to_s3 <- function(app_name=app_name, event_type=event_type, user_inpu
   read_file <- file(tmp, "rb")
   raw_file <- readBin(read_file, "raw", n = file.size(tmp))
   close(read_file)
-  print(raw_file)
   
   r <- tryCatch({
     foo <- s3$put_object(Bucket = log_bucket,
