@@ -53,7 +53,7 @@ send_event_to_s3 <- function(app_name=app_name, event_type=event_type, user_inpu
     app = app_name,
     year = app_year,
     uuid = uuid,
-    user = digest(source_user, "md5", serialize = FALSE),
+    user = digest::digest(source_user, "md5", serialize = FALSE),
     ts = strftime(tm, "%Y-%m-%dT%H:%M:%S%z")
   )
   
