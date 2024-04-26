@@ -14,13 +14,13 @@ s3_list_bucket_items <- function(bucket, prefix = NULL, filter_results = TRUE) {
   my_bucket <- bucket
   my_prefix <- prefix
   
-  # Lists all of bucket contents, fill in your bucket
+  # Lists all of bucket contents
   choices <-
     tryCatch({
       aws.s3::get_bucket(bucket = my_bucket, prefix = my_prefix)
     },
     error = function(e) {
-      print("Could not retreive data from S3, are you logged in?")
+      print("Could not retreive data from S3, have you ran s3_connect?")
     })
   
   # get just path names

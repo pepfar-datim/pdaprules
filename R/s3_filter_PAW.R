@@ -1,3 +1,14 @@
+#' @export
+#' @title s3_filter_PAW(bucketlist)
+#'
+#' @param bucketlist list of paths from your aws bucket
+#' @param category Filter to a specific category "MER", "Financial", or "Narratives".
+#' @param subcategory Filter to a specific subcategory "Site_Recent", "Site_Historic", "PSNU_Recent","PSNU_Historic", "OU_Recent", or "OU_Historic".
+#' @param metadata metadata files will be included when set to TRUE
+#' @param country Filter to a specific country's data. 
+#' @description Standard function for filtering PAW data in S3, returns a filtered list of bucket items.
+#'
+
 s3_filter_PAW <- function(bucketlist = NULL, category = "MER", subcategory = NULL,
                           metadata = FALSE, country = NULL) {
   
