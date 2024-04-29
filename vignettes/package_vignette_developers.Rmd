@@ -66,7 +66,7 @@ my_filtered_items <- s3_filter_PAW(bucketlist = my_items,
                                    country = c("Angola","Lesotho"))
 
 #Read the the file or files
-my_data <- s3_read_PAW(bucket = Sys.getenv("TEST_BUCKET"), path = my_filtered_items)
+my_data <- s3_read_PAW(bucket = Sys.getenv("S3_READ"), path = my_filtered_items)
 
 print(head(my_data))
 ```
