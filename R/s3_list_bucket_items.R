@@ -3,12 +3,12 @@
 #'
 #' @param bucket your aws bucket
 #' @param prefix a specific directory inside your bucket
-#' @param filter_results default is TRUE and filters for txt, xlsx ,csv and xlsx. If FALSE returns everything.
+#' @param filter_parquet default is FALSE and filters for txt, xlsx ,csv and xlsx. If TRUE returns parquet
 #' @description Standard function for connecting to S3, returns a dataframe of files.
 #'
 #'
 
-s3_list_bucket_items <- function(bucket, prefix = NULL, filter_results = TRUE) {
+s3_list_bucket_items_p <- function(bucket, prefix = NULL, filter_parquet = FALSE) {
   
   # params and structuring ----
   my_bucket <- bucket
@@ -33,12 +33,14 @@ s3_list_bucket_items <- function(bucket, prefix = NULL, filter_results = TRUE) {
   choices <- do.call(rbind, Map(data.frame, file_names = cleaned_choices,
                                 path_names = choices, stringsAsFactors = FALSE))
   
-  if(filter_results) {
+  if(!filter_parquet) {
     
     # filter just files that end in txt or xlsx or csv
     choices <- choices[grepl("txt$|xlsx$|csv$|xlsx$", choices$file_names), ]
     #print(choices)
     
+  } else {
+    choices <- choices[grepl("parquet", choices$file_names), ]
   }
   
   # reset row names
