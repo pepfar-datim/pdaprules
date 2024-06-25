@@ -8,7 +8,7 @@
 #'
 #'
 
-s3_list_bucket_items_p <- function(bucket, prefix = NULL, filter_parquet = FALSE) {
+s3_list_bucket_items <- function(bucket, prefix = NULL, filter_parquet = FALSE) {
   
   # params and structuring ----
   my_bucket <- bucket
