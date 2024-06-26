@@ -1,11 +1,16 @@
 Package: pdaprules
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Author: Who wrote it
+Title: A package that provides documentation on working with PRIME systems Posit Workbench and Posit Connect.
+Version: 0.1.2
+Author: c(
+    person("Jordan", "Bales", , "jbales@baosystems.com", role = "ctb")
+    person("Fausto", "Lopez", , "flopez@baosystems.com", role = "ctb"),
+  )
 Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: created to help provide documentation on working with PRIME systems
+    Posit Workbench and Posit Connect. We provide helpful functions for
+    connecting to S3 as well as deploying and working with shiny applications in
+    our connect environment.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
