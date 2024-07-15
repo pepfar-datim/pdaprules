@@ -29,6 +29,7 @@ The following policy covers management of packages for developers working in the
 - R6
 - Rcpp
 - askpass
+- arrow
 - s3
 - signature
 - base64enc

@@ -103,3 +103,67 @@ delete_object(
 )
 
 ```
+
+
+## Reading all MSD files for certain indicators
+
+In order to bypass GENIE and directly access all msd data for a given indicator, you can use the code below to read the parquet files for msd:
+
+```{r, echo=TRUE, eval = FALSE}
+
+# READ ALL MSD SITE_RECENT FROM S3 AS PARQUET AND COMBINE
+ 
+# install new release of pdaprules, make sure you also have arrow installed
+# devtools::install_github(repo = "https://github.com/pepfar-datim/pdaprules.git", ref = "main")
+# install.packages("arrow")
+ 
+library(pdaprules)
+library(aws.s3)
+library(readxl)
+library(paws)
+library(jsonlite)
+library(readxl)
+library(arrow)
+library(dplyr)
+ 
+ 
+my_items <- s3_list_bucket_items(bucket = Sys.getenv("S3_READ"), filter_parquet = TRUE)
+ 
+#Filter those bucket items down
+my_filtered_items <- s3_filter_PAW(bucketlist = my_items,
+                                   category = "MER",
+                                   subcategory = "Site_Recent",
+                                   metadata = FALSE
+)
+ 
+# read all the data function
+read_all_data_with_indicators <- function(my_files, my_bucket, my_indicators) {
+   
+  lapply(my_files, function (my_file_path) {
+    # print the file name so we know
+    print(my_file_path)
+     
+    # read the data
+    data <- aws.s3::s3read_using(FUN = arrow::read_parquet,
+                                 escape_double = FALSE,
+                                 trim_ws = TRUE,
+                                 col_types = readr::cols(.default = readr::col_character()),
+                                 bucket = my_bucket,
+                                 object = my_file_path)
+    if(!is.null(my_indicators)) {
+      data <- data %>% filter(indicator %in% my_indicators)
+    }
+     
+     
+    gc()
+    data
+  }) %>% dplyr::bind_rows()
+}
+ 
+# pass your params and filter for items
+my_final_data <- read_all_data_with_indicators(
+  my_files = my_filtered_items,
+  my_bucket = Sys.getenv("S3_READ"),
+  my_indicators = c("HTS_TST", "TX_CURR")
+)
+```
