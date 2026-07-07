@@ -1,0 +1,472 @@
+---
+title: "RStudio Workbench MVE S3 Interaction"
+author: "Fausto Lopez"
+date: "2026-07-07"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{RStudio Workbench MVE S3 Interaction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+
+# Live S3 examples are skipped during ordinary package builds.
+# Set RUN_S3_VIGNETTE=true to execute them.
+run_s3 <- identical(
+  tolower(Sys.getenv("RUN_S3_VIGNETTE")),
+  "true"
+)
+```
+
+# Overview
+
+This vignette demonstrates how to use `paws` from RStudio Workbench to:
+
+1. Authenticate using the Workbench AWS role.
+2. List readable Parquet files in Amazon S3.
+3. Read a Parquet file into R.
+4. Write a CSV file to the user's S3 workspace.
+5. Read the uploaded file back into R.
+6. Delete the test file from S3.
+
+The examples rely on the following environment variables:
+
+- `AWS_REGION`: AWS region, such as `us-east-1`.
+- `S3_READ`: readable S3 bucket name.
+- `S3_WRITE`: writable S3 bucket and user prefix.
+- `RUN_S3_VIGNETTE`: set to `true` to execute the live S3 examples.
+
+For example:
+
+```text
+AWS_REGION=us-east-1
+S3_READ=ghsd-test-rstudio-workspace
+S3_WRITE=ghsd-test-rstudio-workspace/home/username@example.gov
+RUN_S3_VIGNETTE=true
+```
+
+Credentials are obtained automatically from the AWS role assigned to the
+Workbench server. Access keys should not be hardcoded in the vignette.
+
+```{r execution-status, echo=FALSE}
+if (!run_s3) {
+  cat(
+    "**Note:** Live S3 examples were not executed. ",
+    "Set `RUN_S3_VIGNETTE=true` to run them."
+  )
+}
+```
+
+# Configure the AWS clients
+
+Read the environment configuration, create the S3 client, and verify the AWS
+identity being used by the R session.
+
+```{r configuration, eval=run_s3}
+region <- Sys.getenv("AWS_REGION")
+
+if (!nzchar(region)) {
+  region <- "us-east-1"
+}
+
+read_bucket <- Sys.getenv("S3_READ")
+write_path <- Sys.getenv("S3_WRITE")
+
+if (!nzchar(read_bucket)) {
+  stop("S3_READ is not set.")
+}
+
+if (!nzchar(write_path)) {
+  stop("S3_WRITE is not set.")
+}
+
+s3 <- paws::s3(
+  config = list(region = region)
+)
+
+identity <- paws::sts(
+  config = list(region = region)
+)$get_caller_identity()
+
+identity[c("Account", "Arn")]
+```
+
+# Helper functions
+
+## Parse an S3 bucket and prefix
+
+`S3_WRITE` contains both the bucket and the writable user prefix. This helper
+separates them for use with AWS SDK operations.
+
+```{r helper-parse-path}
+parse_s3_path <- function(path) {
+  path <- sub("^s3://", "", path)
+
+  parts <- strsplit(
+    path,
+    "/",
+    fixed = TRUE
+  )[[1]]
+
+  list(
+    bucket = parts[[1]],
+    prefix = sub(
+      "/+$",
+      "",
+      paste(parts[-1], collapse = "/")
+    )
+  )
+}
+```
+
+## Construct an S3 object key
+
+```{r helper-make-key}
+make_s3_key <- function(prefix, file_name) {
+  if (nzchar(prefix)) {
+    paste(prefix, file_name, sep = "/")
+  } else {
+    file_name
+  }
+}
+```
+
+## List S3 files
+
+A single `list_objects_v2()` request returns a maximum of 1,000 objects. This
+function follows continuation tokens until all matching objects have been
+collected.
+
+```{r helper-list-files}
+list_s3_files <- function(
+    s3,
+    bucket,
+    prefix = "",
+    pattern = "\\.parquet$") {
+
+  token <- NULL
+  keys <- character()
+
+  repeat {
+    request <- list(
+      Bucket = bucket,
+      Prefix = prefix,
+      MaxKeys = 1000L
+    )
+
+    if (!is.null(token)) {
+      request$ContinuationToken <- token
+    }
+
+    response <- do.call(
+      s3$list_objects_v2,
+      request
+    )
+
+    if (length(response$Contents)) {
+      page_keys <- vapply(
+        response$Contents,
+        function(x) x$Key,
+        character(1)
+      )
+
+      keys <- c(keys, page_keys)
+    }
+
+    if (!isTRUE(response$IsTruncated)) {
+      break
+    }
+
+    token <- response$NextContinuationToken
+  }
+
+  choices <- data.frame(
+    file_names = basename(keys),
+    path_names = keys,
+    stringsAsFactors = FALSE
+  )
+
+  choices <- choices[
+    grepl(
+      pattern,
+      choices$file_names,
+      ignore.case = TRUE
+    ),
+    ,
+    drop = FALSE
+  ]
+
+  rownames(choices) <- NULL
+
+  choices
+}
+```
+
+## Read a Parquet object
+
+The object is downloaded to a temporary file and read with
+`arrow::read_parquet()`.
+
+```{r helper-read-parquet}
+read_s3_parquet <- function(s3, bucket, key) {
+  object <- s3$get_object(
+    Bucket = bucket,
+    Key = key
+  )
+
+  temporary_file <- tempfile(fileext = ".parquet")
+
+  on.exit(
+    unlink(temporary_file),
+    add = TRUE
+  )
+
+  writeBin(
+    object$Body,
+    temporary_file
+  )
+
+  arrow::read_parquet(temporary_file)
+}
+```
+
+# List available Parquet files
+
+Set `list_prefix` to an empty string to search the entire readable bucket. A
+narrower prefix can be used to improve performance.
+
+```{r list-files, eval=run_s3}
+list_prefix <- "MER_Structured_Datasets/"
+
+choices <- list_s3_files(
+  s3 = s3,
+  bucket = read_bucket,
+  prefix = list_prefix,
+  pattern = "\\.parquet$"
+)
+
+cat("Parquet files found:", nrow(choices), "\n")
+
+if (interactive()) {
+  utils::View(choices)
+}
+
+knitr::kable(
+  head(choices, 20),
+  caption = "First 20 available Parquet files"
+)
+```
+
+The complete set of available files remains in the `choices` data frame.
+
+```{r choices-structure, eval=run_s3}
+str(choices)
+```
+
+# Select and read a Parquet file
+
+Select the first Parquet object whose path contains `"Ukraine"`.
+
+```{r select-parquet, eval=run_s3}
+target_file <- "Ukraine"
+
+my_parquet <- choices$path_names[
+  grepl(
+    target_file,
+    choices$path_names,
+    fixed = TRUE
+  )
+][1]
+
+stopifnot(!is.na(my_parquet))
+
+my_parquet
+```
+
+Download and read the selected file.
+
+```{r read-parquet, eval=run_s3}
+parquet_time <- system.time({
+  parquet_data <- read_s3_parquet(
+    s3 = s3,
+    bucket = read_bucket,
+    key = my_parquet
+  )
+})
+
+head(parquet_data, 5)
+parquet_time
+```
+
+Retain five rows for the workspace write test.
+
+```{r create-test-data, eval=run_s3}
+my_df <- head(parquet_data, 5)
+```
+
+# Write to the user workspace
+
+Parse the `S3_WRITE` value into its bucket and user prefix.
+
+```{r prepare-write-location, eval=run_s3}
+write_location <- parse_s3_path(write_path)
+
+write_location
+```
+
+Create a unique object key.
+
+```{r create-output-key, eval=run_s3}
+output_key <- make_s3_key(
+  write_location$prefix,
+  paste0(
+    "testfile_fausto_",
+    format(Sys.time(), "%Y%m%d_%H%M%S"),
+    ".csv"
+  )
+)
+
+output_key
+```
+
+Write the test data to a temporary CSV and upload it to S3.
+
+```{r upload-file, eval=run_s3}
+output_file <- tempfile(fileext = ".csv")
+
+write.csv(
+  my_df,
+  file = output_file,
+  row.names = FALSE
+)
+
+upload_result <- s3$put_object(
+  Bucket = write_location$bucket,
+  Key = output_key,
+  Body = output_file,
+  ContentType = "text/csv"
+)
+
+cat(
+  "Uploaded:",
+  paste0(
+    "s3://",
+    write_location$bucket,
+    "/",
+    output_key
+  ),
+  "\n"
+)
+```
+
+# Verify and read the uploaded file
+
+Confirm that the uploaded object exists.
+
+```{r verify-upload, eval=run_s3}
+uploaded_metadata <- s3$head_object(
+  Bucket = write_location$bucket,
+  Key = output_key
+)
+
+uploaded_metadata[
+  c(
+    "ContentLength",
+    "ContentType",
+    "LastModified",
+    "ServerSideEncryption"
+  )
+]
+```
+
+Download the uploaded CSV and read it back into R.
+
+```{r read-uploaded-file, eval=run_s3}
+download_result <- s3$get_object(
+  Bucket = write_location$bucket,
+  Key = output_key
+)
+
+download_file <- tempfile(fileext = ".csv")
+
+writeBin(
+  download_result$Body,
+  download_file
+)
+
+uploaded_data <- read.csv(
+  download_file,
+  check.names = FALSE
+)
+
+head(uploaded_data)
+```
+
+# Delete the test object
+
+Delete the uploaded file after the read/write test is complete.
+
+```{r delete-file, eval=run_s3}
+delete_result <- s3$delete_object(
+  Bucket = write_location$bucket,
+  Key = output_key
+)
+
+cat(
+  "Deleted:",
+  paste0(
+    "s3://",
+    write_location$bucket,
+    "/",
+    output_key
+  ),
+  "\n"
+)
+```
+
+Remove the local temporary files.
+
+```{r cleanup, eval=run_s3}
+unlink(
+  c(
+    output_file,
+    download_file
+  )
+)
+```
+
+# Running the vignette
+
+To execute the live S3 operations before rendering the vignette:
+
+```r
+Sys.setenv(RUN_S3_VIGNETTE = "true")
+
+rmarkdown::render(
+  "vignettes/rstudio-workbench-mve-s3.Rmd"
+)
+```
+
+During an ordinary package build, leave `RUN_S3_VIGNETTE` unset. The vignette
+will render the example code without executing live AWS operations.
+
+The package `DESCRIPTION` file should include:
+
+```text
+Suggests:
+    arrow,
+    knitr,
+    paws,
+    rmarkdown
+
+VignetteBuilder: knitr
+```
